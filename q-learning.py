@@ -17,10 +17,12 @@ from models import*
 #STATES (ANGLES) are discretized -0.35, -0.34, -0,33,... 0,34, 0,35 and speed is discretized in
 n_pos=71
 ANGLES=np.linspace(-0.35,0.35,71)
+ANGLES= ANGLES.round(decimals=2)
 
 #SPEEDS are discretized -1 rad/s, -0.99, -0.98 ... 0.98, 0,99 1 rad/s.
-n_speeds=200
+n_speeds=201
 ANGULAR_VEL=np.linspace(-1,1,n_speeds)
+ANGULAR_VEL= ANGULAR_VEL.round(decimals=2)
 
 #ROWS=    States (71*200=14200 rows)
 #COLUMNS= Actions (Left - Right)
@@ -45,6 +47,7 @@ gamma=0.5
 epsilon=0.15
 goalCounter=0
 Contador=0
+sol=np.zeros((1000,2))
 
 
 #function to choose the Action
@@ -65,43 +68,16 @@ def ChooseAction (Columns,Q,state):
 
     return F, max_index
 
-#function to apply the dynamic model
-def ActionToState(yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0, h=1e-4, **kwargs):
-    """Returns the timeseries of a simulated non inertial pendulum
-
-    Parameters:
-    yinit: initial conditions (th, w)
-    ts: integration times
-    l: the pendulum's length
-    g: the local acceleration of gravity
-    d: the damping constant
-    pivot_x: the horizontal position of the pivot
-    pivot_y: the vertical position of the pivot
-    is_acceleration: set to True to input pivot accelerations instead of positions
-    h: numerical step for computing numerical derivatives
-    **kwargs: odeint keyword arguments
-
-    Returns:
-    sol: the simulation's timeseries sol[:, 0] = ths, sol[:, 1] = ws
-    """
-
-    ## Set the problem
-    f = lambda state, t : dpendulum(state, t, pivot_x, pivot_y, is_acceleration, l, g, d, h)
-
-    ## Solve it
-    sol = odeint(f, yinit, ts, **kwargs)
-
-    return sol, pivot_x
-    
 
 #BEGINNING of the q-learning algorithm
 for episode in range(1,200000):
     # initial state
     #angle=0.20
     #omega=0.50
-    #state=55*200 + 150 
-    state=11150
-    yinit = (0.20, 0.50)
+    #state=56*201 + 151 
+    state_=11407 #this state represents the initial state and angle
+    yinit = (0.20, 0.50) #theta, omega
+    pivot_x=10 #initial pivot_x position
 
     #Q-learning algorithm
     print("episode",episode) #check
@@ -109,16 +85,16 @@ for episode in range(1,200000):
     for i in range(1,300):
 
         ## Choose sometimes the Force randomly
-        F,max_index = ChooseAction(Columns, Q, state)
+        F,max_index = ChooseAction(Columns, Q, state_)
 
         pivot_x = pivot_x + F
-
+        t=np.linspace(0+0.1*i,0.1+0.1*i,2)
         #update the dynamic model
-        sol[i] = ActionToState (yinit, 0.1, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0)#, h=1e-4, **kwargs)
+        sol = pendulum (yinit, t, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0)#, h=1e-4, **kwargs)
                      
         #do the loop and calculate the reward
-        rounded_angle=round(sol[i,0],2)  #round the angle, two decimals
-        rounded_omega=round(sol[i,1],2)  #round the omega, two decimals  
+        rounded_angle=round(sol[1,0],2)  #round the angle, two decimals
+        rounded_omega=round(sol[1,1],2)  #round the omega, two decimals  
 
         #calculate which is my new state
         index_1=np.where(ANGLES==rounded_angle)
@@ -137,7 +113,12 @@ for episode in range(1,200000):
 
         #Q VALUE update
         Q[state,max_index]=Q[state,max_index] + alpha*(Reward + gamma*(QMax - Q[state,max_index]))  #update Q value
-                       
+
+        #calculate the new (angle,omega) conditions
+        new_angle=state // n_speeds
+        new_omega=state % n_speeds
+        yinit=(ANGLES[new_angle],ANGULAR_VEL[new_omega])
+                     
 
         #checking
         if (rounded_angle<=Final_angle+0.05 and rounded_angle>=Final_angle-0.05):
@@ -153,3 +134,4 @@ for episode in range(1,200000):
 
             else:
                 break
+                
