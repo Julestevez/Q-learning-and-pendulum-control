@@ -12,19 +12,19 @@ from models import*
 ######################
 
 
-#STATES (ANGLES) are discretized -0.35, -0.34, -0,33,... 0,34, 0,35 and speed is discretized in
-n_pos=71
-ANGLES=np.linspace(-0.35,0.35,71)
-ANGLES= ANGLES.round(decimals=2)
+#STATES (ANGLES) are discretized -0.350, -0.349, -0,348,... 0,349, 0,350 and speed is discretized in
+n_pos=701
+ANGLES=np.linspace(-0.35,0.35,n_pos)
+ANGLES= ANGLES.round(decimals=3)
 
-#SPEEDS are discretized -1 rad/s, -0.99, -0.98 ... 0.98, 0,99 1 rad/s.
-n_speeds=201
+#SPEEDS are discretized -1 rad/s, -0.999, -0.998 ... 0.998, 0,99 1 rad/s.
+n_speeds=2001
 ANGULAR_VEL=np.linspace(-1,1,n_speeds)
-ANGULAR_VEL= ANGULAR_VEL.round(decimals=2)
+ANGULAR_VEL= ANGULAR_VEL.round(decimals=3)
 
 
 
-#ROWS=    States (71*200=14200 rows)
+#ROWS=    States (701*2001=1402701 rows)
 #COLUMNS= Actions (Left - Right)
 Rows=n_pos*n_speeds
 Columns=2
@@ -35,7 +35,7 @@ Final_omega=0.0
 pivot_x=10.0 
 
 #time steps
-time=300 #30 seconds
+time=400 #30 seconds
 x=np.linspace(1,time,time) #time for obtaining the result
 
 #Initialize Q matrix
@@ -78,22 +78,22 @@ for episode in range(1,200000):
     # initial state
     #angle=0.20
     #omega=0.50
-    #state=56*201 + 151 
-    state_=11407 #this state represents the initial state and angle
+    #state=561*2001 + 1501 
+    state_=1124062 #this state represents the initial state and angle
     yinit = (0.20, 0.50) #theta, omega
     pivot_x=10 #initial pivot_x position
 
     #Q-learning algorithm
     print("episode",episode) #check
-    evolution_angles=np.zeros((300,1))
-    evolution_omegas=np.zeros((300,1))
+    evolution_angles=np.zeros((400,1))
+    evolution_omegas=np.zeros((400,1))
   
     for i in range(1,time):
 
         ## Choose sometimes the Force randomly
         F,max_index = ChooseAction(Columns, Q, state_)
         
-        ts = np.linspace(-1, 1, 20) # Simulation time
+        ts = np.linspace(-1, 1, 6) # Simulation time
         F=step(ts)*F
         pivot_x=pivot_x+F
 
@@ -101,15 +101,15 @@ for episode in range(1,200000):
         #t=np.linspace(0+0.1*i,0.1+0.1*i,2)
  
         #update the dynamic model
-        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0)#, h=1e-4, **kwargs)
+        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.1)#, h=1e-4, **kwargs)
                      
         #do the loop and calculate the reward
-        rounded_angle=round(sol[19,0],2)  #round the angle, two decimals
-        rounded_omega=round(sol[19,1],2)  #round the omega, two decimals. We catch the last position of the ts array
+        rounded_angle=round(sol[5,0],3)  #round the angle, two decimals
+        rounded_omega=round(sol[5,1],3)  #round the omega, two decimals. We catch the last position of the ts array
 
         #just to check the evolution
-        evolution_angles[i]=rounded_angle
-        evolution_omegas[i]=rounded_omega
+        evolution_angles[i]=sol[5,0]
+        evolution_omegas[i]=sol[5,1]
 
         #calculate which is my new state
         index_1=np.where(ANGLES==rounded_angle)
@@ -130,17 +130,20 @@ for episode in range(1,200000):
         Q[state,max_index]=Q[state,max_index] + alpha*(Reward + gamma*(QMax - Q[state,max_index]))  #update Q value
 
         #calculate the new (angle,omega) conditions
-        yinit=(rounded_angle,rounded_omega)
+        yinit=(sol[5,0],sol[5,1])
                      
 
         #checking
         if (rounded_angle<=Final_angle+0.05 and rounded_angle>=Final_angle-0.05):
             #print("entra")
             goalCounter=goalCounter+1
-            if (rounded_omega<=Final_omega+0.02 and rounded_omega==Final_omega-0.02):
+            if (rounded_omega<=Final_omega+0.05 and rounded_omega>=Final_omega-0.05):
                 Contador=Contador +1  #counter of successful hits
                     
                 #saving of successful data
                 
-                state=11407 #reinitialize
+                state=1124062 #reinitialize
                 break
+
+            #else:
+                #break
