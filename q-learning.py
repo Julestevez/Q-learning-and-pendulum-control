@@ -1,7 +1,5 @@
-#this code is the workbench for q-learning
-#it consists on a lifting particle that must reach a certain height
-#it is only subjected to gravity
-#Force applied to the particle might be fixed 9.9 or 9.7N
+#this code aims to stop a non-damped pendulum through its pivot_x movement
+#the correct orders are guessed by q-learning
 
 import numpy as np
 import math
@@ -24,6 +22,8 @@ n_speeds=201
 ANGULAR_VEL=np.linspace(-1,1,n_speeds)
 ANGULAR_VEL= ANGULAR_VEL.round(decimals=2)
 
+
+
 #ROWS=    States (71*200=14200 rows)
 #COLUMNS= Actions (Left - Right)
 Rows=n_pos*n_speeds
@@ -35,8 +35,8 @@ Final_omega=0.0
 pivot_x=10.0 
 
 #time steps
-n_items=302
-x=np.linspace(0,301,n_items) #time for obtaining the result
+time=300 #30 seconds
+x=np.linspace(1,time,time) #time for obtaining the result
 
 #Initialize Q matrix
 Q=np.ones((Rows,Columns))
@@ -68,6 +68,10 @@ def ChooseAction (Columns,Q,state):
 
     return F, max_index
 
+def step(ts):
+    return 1 * (ts > 0)
+
+
 
 #BEGINNING of the q-learning algorithm
 for episode in range(1,200000):
@@ -81,20 +85,31 @@ for episode in range(1,200000):
 
     #Q-learning algorithm
     print("episode",episode) #check
+    evolution_angles=np.zeros((300,1))
+    evolution_omegas=np.zeros((300,1))
   
-    for i in range(1,300):
+    for i in range(1,time):
 
         ## Choose sometimes the Force randomly
         F,max_index = ChooseAction(Columns, Q, state_)
+        
+        ts = np.linspace(-1, 1, 20) # Simulation time
+        F=step(ts)*F
+        pivot_x=pivot_x+F
 
-        pivot_x = pivot_x + F
-        t=np.linspace(0+0.1*i,0.1+0.1*i,2)
+        #pivot_x = pivot_x + F
+        #t=np.linspace(0+0.1*i,0.1+0.1*i,2)
+ 
         #update the dynamic model
-        sol = pendulum (yinit, t, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0)#, h=1e-4, **kwargs)
+        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.0)#, h=1e-4, **kwargs)
                      
         #do the loop and calculate the reward
-        rounded_angle=round(sol[1,0],2)  #round the angle, two decimals
-        rounded_omega=round(sol[1,1],2)  #round the omega, two decimals  
+        rounded_angle=round(sol[19,0],2)  #round the angle, two decimals
+        rounded_omega=round(sol[19,1],2)  #round the omega, two decimals. We catch the last position of the ts array
+
+        #just to check the evolution
+        evolution_angles[i]=rounded_angle
+        evolution_omegas[i]=rounded_omega
 
         #calculate which is my new state
         index_1=np.where(ANGLES==rounded_angle)
@@ -115,22 +130,17 @@ for episode in range(1,200000):
         Q[state,max_index]=Q[state,max_index] + alpha*(Reward + gamma*(QMax - Q[state,max_index]))  #update Q value
 
         #calculate the new (angle,omega) conditions
-        new_angle=state // n_speeds
-        new_omega=state % n_speeds
-        yinit=(ANGLES[new_angle],ANGULAR_VEL[new_omega])
+        yinit=(rounded_angle,rounded_omega)
                      
 
         #checking
         if (rounded_angle<=Final_angle+0.05 and rounded_angle>=Final_angle-0.05):
-            print("entra")
+            #print("entra")
             goalCounter=goalCounter+1
             if (rounded_omega<=Final_omega+0.02 and rounded_omega==Final_omega-0.02):
                 Contador=Contador +1  #counter of successful hits
                     
                 #saving of successful data
                 
-                state=11150 #reinitialize
-                break
-
-            else:
+                state=11407 #reinitialize
                 break
