@@ -13,8 +13,8 @@ from models import*
 
 
 #STATES (ANGLES) are discretized -0.350, -0.349, -0,348,... 0,349, 0,350 and speed is discretized in
-n_pos=701
-ANGLES=np.linspace(-0.35,0.35,n_pos)
+n_pos=3401
+ANGLES=np.linspace(-1.70,1.70,n_pos)
 ANGLES= ANGLES.round(decimals=3)
 
 #SPEEDS are discretized -1 rad/s, -0.999, -0.998 ... 0.998, 0,99 1 rad/s.
@@ -28,7 +28,8 @@ ANGULAR_VEL= ANGULAR_VEL.round(decimals=3)
 #COLUMNS= Actions (Left - Right)
 Rows=n_pos*n_speeds
 Columns=2
-Actions=(-0.1, 0.1) #-pivot_x or +pivot_x
+#Actions=(-0.1, 0.1) #-pivot_x or +pivot_x
+Actions=(0, 0) #-pivot_x or +pivot_x
 Final_angle=0.0
 Final_omega=0.0
 
@@ -68,40 +69,60 @@ def ChooseAction (Columns,Q,state):
 
     return F, max_index
 
-def step(ts):
-    return 1 * (ts > 0)
+"""def step(ts):
+    return 1 * (ts > 0)"""
+
+# Auxiliary function
+# representing a continuous step
+def cont_step(t, t_init, x_init, x_end, speed):
+    aux = lambda t : np.pi/2 + np.arctan(speed*(t-t_init))/np.pi # Asymptotes: 0 and 1
+    return x_init + (x_end - x_init) * aux(t)
 
 
 
 #BEGINNING of the q-learning algorithm
 for episode in range(1,200000):
     # initial state
-    #angle=0.20
-    #omega=0.50
-    #state=561*2001 + 1501 
-    state_=1124062 #this state represents the initial state and angle
-    yinit = (0.20, 0.50) #theta, omega
+    #angle=1.0
+    #omega=0
+    #state=1701*2001
+    state=5002500 #this state represents the initial state and angle
+    yinit = (0.80, 0) #theta, omega
     pivot_x=10 #initial pivot_x position
+    x_init=0
+    x_end=0
 
     #Q-learning algorithm
     print("episode",episode) #check
     evolution_angles=np.zeros((400,1))
     evolution_omegas=np.zeros((400,1))
+
   
     for i in range(1,time):
 
         ## Choose sometimes the Force randomly
-        F,max_index = ChooseAction(Columns, Q, state_)
+        F,max_index = ChooseAction(Columns, Q, state)
         
-        ts = np.linspace(-1, 1, 6) # Simulation time
-        F=step(ts)*F
-        pivot_x=pivot_x+F
+        ## create the movement of the pivot
+        tSteps = 1000
+        ts = np.linspace(-1, 1, tSteps) # Simulation time
+        yinit = (0, 0) # Initial condition (th_0, w_0)
+
+        pos_x = lambda t : cont_step(ts, x_init, x_end=x_init+F, t_init = (i-1)*2, speed = 5)
+        pos_y = lambda t : 0*t
+
+        # Solve 
+        sol_1 = pendulum(yinit, ts, pos_x, pos_y, g = 9.8, l = 1.0, d = 0)
+
+
+        #F=step(ts)*F
+        #pivot_x=pivot_x+F
 
         #pivot_x = pivot_x + F
         #t=np.linspace(0+0.1*i,0.1+0.1*i,2)
  
         #update the dynamic model
-        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0.1)#, h=1e-4, **kwargs)
+        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0)#, h=1e-4, **kwargs)
                      
         #do the loop and calculate the reward
         rounded_angle=round(sol[5,0],3)  #round the angle, two decimals
@@ -131,6 +152,8 @@ for episode in range(1,200000):
 
         #calculate the new (angle,omega) conditions
         yinit=(sol[5,0],sol[5,1])
+        
+        x_init=x_end
                      
 
         #checking
@@ -142,7 +165,7 @@ for episode in range(1,200000):
                     
                 #saving of successful data
                 
-                state=1124062 #reinitialize
+                state=5002500 #reinitialize
                 break
 
             #else:
