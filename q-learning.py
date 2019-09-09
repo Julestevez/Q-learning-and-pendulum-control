@@ -111,10 +111,7 @@ for episode in range(1,200000):
         pos_x = lambda t : cont_step(ts, x_init, x_end=x_init+F, t_init = (i-1)*2, speed = 5)
         pos_y = lambda t : 0*t
 
-        # Solve 
-        sol_1 = pendulum(yinit, ts, pos_x, pos_y, g = 9.8, l = 1.0, d = 0)
-
-
+       
         #F=step(ts)*F
         #pivot_x=pivot_x+F
 
@@ -122,7 +119,7 @@ for episode in range(1,200000):
         #t=np.linspace(0+0.1*i,0.1+0.1*i,2)
  
         #update the dynamic model
-        sol = pendulum (yinit, ts, pivot_x, pivot_y=0.0, is_acceleration=False, l=1.0, g=9.8, d=0)#, h=1e-4, **kwargs)
+        sol_1 = pendulum(yinit, ts, pos_x, pos_y, g = 9.8, l = 1.0, d = 0)
                      
         #do the loop and calculate the reward
         rounded_angle=round(sol[5,0],3)  #round the angle, two decimals
