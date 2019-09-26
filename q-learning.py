@@ -74,7 +74,7 @@ def ChooseAction (Columns,Q,state):
 
 # Auxiliary function
 # representing a continuous step
-def cont_step(t, t_init, x_init, x_end, speed):
+def cont_step(F, t, t_init, x_init, x_end, speed):
     aux = lambda t : np.pi/2 + np.arctan(speed*(t-t_init))/np.pi # Asymptotes: 0 and 1
     return x_init + (x_end - x_init) * aux(t)
 
@@ -83,14 +83,11 @@ def cont_step(t, t_init, x_init, x_end, speed):
 #BEGINNING of the q-learning algorithm
 for episode in range(1,200000):
     # initial state
-    #angle=1.0
-    #omega=0
-    #state=1701*2001
+   
     state=5002500 #this state represents the initial state and angle
     yinit = (0.80, 0) #theta, omega
     pivot_x=10 #initial pivot_x position
-    x_init=0
-    x_end=0
+    
 
     #Q-learning algorithm
     print("episode",episode) #check
@@ -107,17 +104,14 @@ for episode in range(1,200000):
         tSteps = 1000
         ts = np.linspace(-1, 1, tSteps) # Simulation time
         yinit = (0, 0) # Initial condition (th_0, w_0)
-
-        pos_x = lambda t : cont_step(ts, x_init, x_end=x_init+F, t_init = (i-1)*2, speed = 5)
+        x_init=0
+        x_end=0
+        t_init=(i-1)*2
+        x_end=x_init+F
+       
+        pos_x = lambda t : cont_step(F, ts, x_init, x_end, t_init, speed = 5)
         pos_y = lambda t : 0*t
 
-       
-        #F=step(ts)*F
-        #pivot_x=pivot_x+F
-
-        #pivot_x = pivot_x + F
-        #t=np.linspace(0+0.1*i,0.1+0.1*i,2)
- 
         #update the dynamic model
         sol_1 = pendulum(yinit, ts, pos_x, pos_y, g = 9.8, l = 1.0, d = 0)
                      
