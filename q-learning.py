@@ -109,7 +109,7 @@ for episode in range(1,200000):
         t_init=(i-1)*2
         x_end=x_init+F
        
-        pos_x = lambda t : cont_step(F, ts, x_init, x_end, t_init, speed = 5)
+        pos_x = lambda t : cont_step(F, t, x_init, x_end, t_init, speed = 5)
         pos_y = lambda t : 0*t
 
         #update the dynamic model
